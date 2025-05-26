@@ -87,13 +87,53 @@ private:
 
 // --- ASTEROID HIERARCHY ---
 
+
+
+class Explosion {
+public:
+    Explosion(float xPos, float yPos) : x(xPos), y(yPos), timer(0), duration(30) {}
+
+    void Update() {
+        timer++;
+    }
+
+	void Draw() {
+		if (!IsFinished()) {
+			float radius = static_cast<float>(timer);
+			DrawCircle(static_cast<int>(x), static_cast<int>(y), radius, RED);
+		}
+	}
+
+    bool IsFinished() const {
+        return timer >= duration;
+    }
+
+private:
+    float x, y;
+    int timer;
+    int duration;
+};
+
+
+void DrawCircleSimple(float x, float y, float radius) {
+	// Przykład z Raylib
+	DrawCircle(static_cast<int>(x), static_cast<int>(y), radius, RED);
+}
+
+
+
+
+
+
 class Asteroid {
 public:
+	int hp;
 	Asteroid(int screenW, int screenH) {
 		init(screenW, screenH);
+		hp = GetSize() * 20;  
 	}
 	virtual ~Asteroid() = default;
-
+	
 	bool Update(float dt) {
 		transform.position = Vector2Add(transform.position, Vector2Scale(physics.velocity, dt));
 		transform.rotation += physics.rotationSpeed * dt;
@@ -104,6 +144,9 @@ public:
 	}
 	virtual void Draw() const = 0;
 
+	void TakeDamage(int dmg) {
+		hp -= dmg*0.001;
+	}
 	Vector2 GetPosition() const {
 		return transform.position;
 	}
@@ -119,7 +162,7 @@ public:
 	int GetSize() const {
 		return static_cast<int>(render.size);
 	}
-
+	bool IsDestroyed() const { return hp <= 0; }
 protected:
 	void init(int screenW, int screenH) {
 		// Choose size
@@ -174,6 +217,15 @@ public:
 	TriangleAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 5; }
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 3, GetRadius(), transform.rotation);
+		float barWidth = GetRadius() * 2;
+		float barHeight = 4.f;
+		float hpPerc = (float)hp / (GetSize() * 20.f);
+		Vector2 barPos = { transform.position.x - barWidth * 0.5f, transform.position.y - GetRadius() - 10.f };
+
+		DrawRectangle(barPos.x, barPos.y, barWidth, barHeight, DARKGRAY);
+		DrawRectangle(barPos.x, barPos.y, barWidth * hpPerc, barHeight, RED);
+		DrawRectangleLines(barPos.x, barPos.y, barWidth, barHeight, BLACK);
+
 	}
 };
 class SquareAsteroid : public Asteroid {
@@ -181,6 +233,14 @@ public:
 	SquareAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 10; }
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 4, GetRadius(), transform.rotation);
+		float barWidth = GetRadius() * 2;
+		float barHeight = 4.f;
+		float hpPerc = (float)hp / (GetSize() * 20.f);
+		Vector2 barPos = { transform.position.x - barWidth * 0.5f, transform.position.y - GetRadius() - 10.f };
+
+		DrawRectangle(barPos.x, barPos.y, barWidth, barHeight, DARKGRAY);
+		DrawRectangle(barPos.x, barPos.y, barWidth * hpPerc, barHeight, RED);
+		DrawRectangleLines(barPos.x, barPos.y, barWidth, barHeight, BLACK);
 	}
 };
 class PentagonAsteroid : public Asteroid {
@@ -188,6 +248,14 @@ public:
 	PentagonAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 15; }
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 5, GetRadius(), transform.rotation);
+		float barWidth = GetRadius() * 2;
+		float barHeight = 4.f;
+		float hpPerc = (float)hp / (GetSize() * 20.f);
+		Vector2 barPos = { transform.position.x - barWidth * 0.5f, transform.position.y - GetRadius() - 10.f };
+
+		DrawRectangle(barPos.x, barPos.y, barWidth, barHeight, DARKGRAY);
+		DrawRectangle(barPos.x, barPos.y, barWidth * hpPerc, barHeight, RED);
+		DrawRectangleLines(barPos.x, barPos.y, barWidth, barHeight, BLACK);
 	}
 };
 
@@ -196,6 +264,14 @@ public:
 	NonagonAsteroid(int w, int h) : Asteroid(w, h) { baseDamage = 69; }
 	void Draw() const override {
 		Renderer::Instance().DrawPoly(transform.position, 12, GetRadius(), transform.rotation);
+		float barWidth = GetRadius() * 2;
+		float barHeight = 4.f;
+		float hpPerc = (float)hp / (GetSize() * 20.f);
+		Vector2 barPos = { transform.position.x - barWidth * 0.5f, transform.position.y - GetRadius() - 10.f };
+
+		DrawRectangle(barPos.x, barPos.y, barWidth, barHeight, DARKGRAY);
+		DrawRectangle(barPos.x, barPos.y, barWidth * hpPerc, barHeight, RED);
+		DrawRectangleLines(barPos.x, barPos.y, barWidth, barHeight, BLACK);
 	}
 };
 
@@ -404,16 +480,29 @@ public:
 	void Draw() const override {
 		if (!alive && fmodf(GetTime(), 0.4f) > 0.2f) return;
 		Vector2 dstPos = {
-										 transform.position.x - (texture.width * scale) * 0.5f,
-										 transform.position.y - (texture.height * scale) * 0.5f
+			transform.position.x - (texture.width * scale) * 0.5f,
+			transform.position.y - (texture.height * scale) * 0.5f
 		};
+
+		// Rysowanie statku
 		DrawTextureEx(texture, dstPos, 0.0f, scale, WHITE);
+
+		// Rysowanie paska życia nad graczem
+		float barWidth = 50.f;
+		float barHeight = 6.f;
+		float hpPerc = (float)hp / 100.f;  // hp to int w klasie Ship
+
+		Vector2 barPos = { transform.position.x - barWidth * 0.5f, transform.position.y - (texture.height * scale) * 0.5f - 15.f };
+
+		DrawRectangle(barPos.x, barPos.y, barWidth, barHeight, DARKGRAY);
+		DrawRectangle(barPos.x, barPos.y, barWidth * hpPerc, barHeight, GREEN);
+		DrawRectangleLines(barPos.x, barPos.y, barWidth, barHeight, BLACK);
 	}
 
 	float GetRadius() const override {
 		return (texture.width * scale) * 0.5f;
 	}
-
+	
 private:
 	Texture2D texture;
 	float     scale;
@@ -426,6 +515,7 @@ public:
 		static Application inst;
 		return inst;
 	}
+	std::vector<Explosion> explosions;
 
 	void Run() {
 		srand(static_cast<unsigned>(time(nullptr)));
@@ -535,12 +625,42 @@ public:
 
 			// Update projectiles - check if in boundries and move them forward
 			{
+				
+				
+				for (auto pit = projectiles.begin(); pit != projectiles.end();) {
+					bool removed = false;
+
+					for (auto ait = asteroids.begin(); ait != asteroids.end(); ++ait) {
+						float dist = Vector2Distance((*pit).GetPosition(), (*ait)->GetPosition());
+						if (dist < (*pit).GetRadius() + (*ait)->GetRadius()) {
+							(*ait)->TakeDamage((*pit).GetDamage());
+							pit = projectiles.erase(pit);
+							removed = true;
+							if ((*ait)->IsDestroyed()) {
+								float x = (*ait)->GetPosition().x;
+								float y = (*ait)->GetPosition().y;
+								float radius = 20.0f; 
+
+							
+								DrawCircleSimple(x, y, radius);
+
+								ait = asteroids.erase(ait);
+							}
+							break;
+						}
+					}
+					if (!removed) {
+						++pit;
+					}
+
+				}
 				auto projectile_to_remove = std::remove_if(projectiles.begin(), projectiles.end(),
 					[dt](auto& projectile) {
 						return projectile.Update(dt);
 					});
 				projectiles.erase(projectile_to_remove, projectiles.end());
 			}
+			
 
 			// Projectile-Asteroid collisions O(n^2)
 			for (auto pit = projectiles.begin(); pit != projectiles.end();) {
@@ -549,9 +669,20 @@ public:
 				for (auto ait = asteroids.begin(); ait != asteroids.end(); ++ait) {
 					float dist = Vector2Distance((*pit).GetPosition(), (*ait)->GetPosition());
 					if (dist < (*pit).GetRadius() + (*ait)->GetRadius()) {
-						ait = asteroids.erase(ait);
+						(*ait)->TakeDamage((*pit).GetDamage());
 						pit = projectiles.erase(pit);
 						removed = true;
+						if ((*ait)->IsDestroyed()) {
+							float x = (*ait)->GetPosition().x;
+							float y = (*ait)->GetPosition().y;
+							float radius = 20.0f;  
+
+							
+							DrawCircleSimple(x, y, radius);
+
+							ait = asteroids.erase(ait);
+						}
+
 						break;
 					}
 				}
@@ -579,6 +710,7 @@ public:
 					};
 				auto asteroid_to_remove = std::remove_if(asteroids.begin(), asteroids.end(), remove_collision);
 				asteroids.erase(asteroid_to_remove, asteroids.end());
+
 			}
 
 			// Render everything
@@ -610,14 +742,14 @@ public:
 			}
 		}
 	}
-
+	
 private:
 	Application()
 	{
 		asteroids.reserve(1000);
 		projectiles.reserve(10'000);
 	};
-
+	
 	std::vector<std::unique_ptr<Asteroid>> asteroids;
 	std::vector<Projectile> projectiles;
 
